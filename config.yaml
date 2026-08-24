@@ -49,6 +49,13 @@ models:                      # anahtar sirasi dropdown sirasidir
     engine: vllm
     hf_id: "HuggingFaceTB/SmolVLM2-256M-Video-Instruct"
     container: "vllm-smolvlm2-256m"
+    # 256M model icin kutusuz, tek-cumlelik sade prompt (kutu zaten uretemiyor;
+    # JSON sozlesmesi yalniz InternVL'de - genel SYSTEM_PROMPT)
+    system_prompt: |
+      Answer in ONE short sentence, in the same language as the question.
+      If the question is yes/no, start with Yes or No. Only mention objects
+      you can clearly see; if unsure or absent, say no. Never guess.
+      Do not describe the image unless asked.
   internvl25-1b:
     display_name: "InternVL2.5-1B (vLLM)"
     engine: vllm

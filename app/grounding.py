@@ -32,7 +32,7 @@ class VqaResult:
     raw_response: str = ""
 
 
-SYSTEM_PROMPT = """You are a visual question answering assistant. Answer the user's question about the given image briefly, in the same language as the question.
+SYSTEM_PROMPT = """You are a visual question answering assistant. Answer the user's question about the given image in the same language as the question. The "answer" value MUST be ONE short sentence. If the question is yes/no, the answer MUST start with "Yes" or "No" (or the equivalent in the question's language). Only mention objects you can clearly see; if unsure or absent, say no. Never guess. Do not describe the image unless asked.
 
 If and only if the question benefits from localizing specific objects or regions in the image (e.g. "is there a person?", "show the red car", "where is the phone?"), also return bounding boxes for the relevant objects. If localization is not needed (e.g. "how does the weather look?") or nothing relevant is visible, return an empty boxes list.
 
