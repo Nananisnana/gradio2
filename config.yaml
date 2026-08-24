@@ -50,12 +50,9 @@ models:                      # anahtar sirasi dropdown sirasidir
     hf_id: "OpenGVLab/InternVL2_5-1B"
     container: "vllm-internvl25-1b"
     serve_extra: "--trust-remote-code"     # InternVL ozel model kodu kullanir
-  qwen2-vl-2b-awq:
-    display_name: "Qwen2-VL-2B AWQ (vLLM)"
-    engine: vllm
-    hf_id: "Qwen/Qwen2-VL-2B-Instruct-AWQ"
-    container: "vllm-qwen2-vl-2b-awq"
-    # NOT: AWQ kernel'i Jetson'da dogrulanmadi; sorun cikarirsa bu girisi sil
+  # NOT: Qwen2-VL-2B-AWQ denendi ve KALDIRILDI (2026-08-24): AWQ kuantizasyon
+  # cekirdekleri bu cihazin GPU'sunda calismadi. Geri eklemek istersen eski
+  # girisi git gecmisinden al; once AWQ'suz/farkli kuantizasyonlu varyant dene.
   llava-05b:
     display_name: "LLaVA-OneVision-0.5B (SGLang)"
     engine: sglang

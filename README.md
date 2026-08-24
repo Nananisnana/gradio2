@@ -14,11 +14,10 @@ container'ı vardır, aynı motorun modelleri motorun tek portunu paylaşır. Mo
 ModelManager o motorun eski container'ını durdurup yenisini başlatır.
 
 ```
-Gradio app (host venv, 0.0.0.0:7860) — dropdown: 4 MODEL
+Gradio app (host venv, 0.0.0.0:7860) — dropdown: 3 MODEL
    │
    ├── vLLM motoru   :8000 ── vllm-smolvlm2-256m   (SmolVLM2-256M, varsayılan)
-   │    (tek slot)       ├── vllm-internvl25-1b    (InternVL2.5-1B, --trust-remote-code)
-   │                     └── vllm-qwen2-vl-2b-awq  (Qwen2-VL-2B AWQ — Jetson'da doğrulanmadı)
+   │    (tek slot)       └── vllm-internvl25-1b    (InternVL2.5-1B, --trust-remote-code)
    └── SGLang motoru :30000 ─ sglang-llava-05b     (LLaVA-OneVision-0.5B, chatml-llava)
 ```
 
@@ -62,8 +61,8 @@ bash jetson/setup.sh
 |---|---|
 | jetson-containers clone + install | ~5 dk |
 | Image pull (2 image, ~8-12GB/adet) | 30–60 dk |
-| Model ön-indirme (4 model + bağımlılıkları, ~7.5GB) | 15–30 dk |
-| Container create (model başına 1, 4 adet) | ~1 dk |
+| Model ön-indirme (3 model + bağımlılıkları, ~6GB) | 10–25 dk |
+| Container create (model başına 1, 3 adet) | ~1 dk |
 
 Ön-indirme, modellerin işaret ettiği **harici bağımlılık repolarını da** çeker
 (`config.yaml` → `extra_downloads`; örn. LLaVA'nın SigLIP vision tower'ı ~1.5GB —
@@ -84,7 +83,6 @@ bitince Ctrl+C ile çıkabilirsin (sunucular hazır olmadan app'i açık tutmana
 ```bash
 bash jetson/start-model.sh smolvlm2-256m   && bash jetson/smoke-test.sh vllm
 bash jetson/start-model.sh internvl25-1b   && bash jetson/smoke-test.sh vllm
-bash jetson/start-model.sh qwen2-vl-2b-awq && bash jetson/smoke-test.sh vllm   # AWQ Jetson'da doğrulanmadı - çökerse bu modeli config'ten sil
 bash jetson/stop-all.sh
 
 bash jetson/start-model.sh llava-05b       && bash jetson/smoke-test.sh sglang
@@ -151,8 +149,7 @@ uygulama asla kırılmaz.
 
 | Model | Grounding beklentisi |
 |---|---|
-| Qwen2-VL-2B AWQ | En iyi aday — native grounding eğitimi var |
-| InternVL2.5-1B | Kısmi — grounding verisi görmüş, JSON uyumu değişken |
+| InternVL2.5-1B | En iyi mevcut aday — JSON sözleşmesine uyduğu sahada doğrulandı; kutu üretimi değişken |
 | SmolVLM2-256M | Muhtemelen `boxes: []` veya güvenilmez koordinat |
 | LLaVA-OneVision-0.5B | Zayıf — çoğunlukla düz cevap beklenir |
 
@@ -173,7 +170,7 @@ AKTİF olan modele gider.
 
 **Güvenli varsayılan `mode: switch`tir:** tek aktif model, container'lar frac 0.5,
 OOM riski en düşük — paylaşımlı cihaz için doğru duruş. Normal kullanımda bu bölüme
-hiç girmeden Bölüm 4 ile çalışmaya devam edilir; 4 modelin tamamı switch modda
+hiç girmeden Bölüm 4 ile çalışmaya devam edilir; 3 modelin tamamı switch modda
 serbestçe gezilir. Dual (iki motor aynı anda) yalnızca bilinçli bir deneydir.
 
 **Denemek istersen — önkoşul: düşük fraksiyonla recreate + config değişikliği:**
@@ -189,7 +186,6 @@ bash jetson/start-dual.sh   # sırayla: önce vLLM slotu (default_model), sonra 
 Her iki motora uygulamadan (veya smoke-test ile) 2-3'er istek at; `free -h` ve
 swap büyümesini not et. Dual moddayken vLLM slotunda model değiştirmek (örn. SmolVLM →
 InternVL) SGLang slotuna dokunmaz ama 1-2 dk'lık container değişimi tetikler. 2B'lik
-Qwen-AWQ dual bütçesine büyük olasılıkla sığmaz — onu switch modda kullan.
 
 **OOM belirtileri:** container exit 137 · `sudo dmesg | tail` içinde oom-killer ·
 tegrastats RAM 7300+/7620 · masaüstü donması · **cihazdaki diğer yazılımların ölmesi/yeniden başlaması (ACİL: `bash jetson/stop-all.sh` + ekibe haber)**
