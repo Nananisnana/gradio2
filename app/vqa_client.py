@@ -23,10 +23,11 @@ from .ui_text import TR
 
 
 class VqaError(Exception):
-    def __init__(self, user_message: str, detail: str = ""):
+    def __init__(self, user_message: str, detail: str = "", status: int | None = None):
         super().__init__(user_message)
         self.user_message = user_message
         self.detail = detail
+        self.status = status
 
 
 class VqaClient(Protocol):
@@ -46,20 +47,24 @@ class OpenAIVqaClient:
             max_retries=0,  # 8GB paylaşımlı cihazda yinelenen istek OOM riski
         )
 
-    def ask(self, prompt: str, image_data_uri: str) -> VqaResult:
+    def _messages(self, prompt: str, image_data_uri: str, merge_system: bool):
+        text = (SYSTEM_PROMPT + "\n\n" + prompt) if merge_system else prompt
+        user = {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": text},
+                {"type": "image_url", "image_url": {"url": image_data_uri}},
+            ],
+        }
+        if merge_system:
+            return [user]
+        return [{"role": "system", "content": SYSTEM_PROMPT}, user]
+
+    def _request(self, messages) -> str:
         try:
             resp = self._client.chat.completions.create(
                 model=self._model.hf_id,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                            {"type": "image_url", "image_url": {"url": image_data_uri}},
-                        ],
-                    },
-                ],
+                messages=messages,
                 max_tokens=self._req.max_tokens,
                 temperature=self._req.temperature,
             )
@@ -75,13 +80,16 @@ class OpenAIVqaClient:
                 pass
             if e.status_code == 404:
                 raise VqaError(
-                    TR["err_model_404"].format(model=self._model.hf_id), body
+                    TR["err_model_404"].format(model=self._model.hf_id), body, status=404
                 ) from e
             if e.status_code == 400:
-                raise VqaError(TR["err_bad_request"].format(detail=body), body) from e
+                raise VqaError(
+                    TR["err_bad_request"].format(detail=body), body, status=400
+                ) from e
             raise VqaError(
                 TR["err_server"].format(code=e.status_code, container=self._model.container),
                 body,
+                status=e.status_code,
             ) from e
         except Exception as e:
             raise VqaError(TR["err_unexpected"].format(detail=str(e)[:200]), str(e)) from e
@@ -91,6 +99,18 @@ class OpenAIVqaClient:
         raw = (resp.choices[0].message.content or "").strip()
         if not raw:
             raise VqaError(TR["err_empty_answer"])
+        return raw
+
+    def ask(self, prompt: str, image_data_uri: str) -> VqaResult:
+        try:
+            raw = self._request(self._messages(prompt, image_data_uri, merge_system=False))
+        except VqaError as e:
+            # bazı chat şablonları system rolünü reddeder (InternVL'de sahada
+            # görüldü: HTTP 400). Sözleşme metnini kullanıcı mesajına birleştirip
+            # TEK bir kez yeniden dene; o da olmazsa asıl hata yükselir.
+            if e.status != 400:
+                raise
+            raw = self._request(self._messages(prompt, image_data_uri, merge_system=True))
         return parse_grounding_result(raw)
 
 

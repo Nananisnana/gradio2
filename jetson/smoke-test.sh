@@ -145,28 +145,47 @@ def overlaps_truth(b):
     cx, cy = (b.x1 + b.x2) / 2, (b.y1 + b.y2) / 2
     return inter >= 0.25 * true_area or (tx1 <= cx <= tx2 and ty1 <= cy <= ty2)
 
+def g_messages(merge_system):
+    text = (SYSTEM_PROMPT + "\n\n" + GROUNDING_PROMPT) if merge_system else GROUNDING_PROMPT
+    user = {"role": "user", "content": [
+        {"type": "text", "text": text},
+        {"type": "image_url", "image_url": {"url": DATA_URI}},
+    ]}
+    return [user] if merge_system else [{"role": "system", "content": SYSTEM_PROMPT}, user]
+
+g_note = ""
 try:
-    _, gresp = chat([
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": [
-            {"type": "text", "text": GROUNDING_PROMPT},
-            {"type": "image_url", "image_url": {"url": DATA_URI}},
-        ]},
-    ])
+    try:
+        _, gresp = chat(g_messages(merge_system=False))
+    except urllib.error.HTTPError as e:
+        if e.code != 400:
+            raise
+        # bazi chat sablonlari system rolunu reddeder (InternVL'de sahada
+        # goruldu) -> sozlesmeyi kullanici mesajina birlestirip tek deneme
+        # (uygulamadaki istemci de ayni geri dususu yapar)
+        _, gresp = chat(g_messages(merge_system=True))
+        g_note = "; system rolu reddedildi -> birlestirildi"
     graw = gresp["choices"][0]["message"]["content"] or ""
     parsed = parse_grounding_result(graw)
     if parsed.boxes and CUSTOM:
-        results.append(("Grounding", "PASS", f"{len(parsed.boxes)} kutu (ozel gorsel: bolge dogrulanamaz)"))
+        results.append(("Grounding", "PASS", f"{len(parsed.boxes)} kutu (ozel gorsel: bolge dogrulanamaz){g_note}"))
     elif parsed.boxes and any(overlaps_truth(b) for b in parsed.boxes):
-        results.append(("Grounding", "PASS", f"{len(parsed.boxes)} kutu, dogru bolgede"))
+        results.append(("Grounding", "PASS", f"{len(parsed.boxes)} kutu, dogru bolgede{g_note}"))
     elif parsed.boxes:
-        results.append(("Grounding", "WARN", f"{len(parsed.boxes)} kutu ama kirmizi kare bolgesiyle ortusmuyor"))
+        results.append(("Grounding", "WARN", f"{len(parsed.boxes)} kutu ama kirmizi kare bolgesiyle ortusmuyor{g_note}"))
     elif parsed.answer != parsed.raw_response:
-        results.append(("Grounding", "WARN", "gecerli JSON, kutu yok"))
+        results.append(("Grounding", "WARN", f"gecerli JSON, kutu yok{g_note}"))
     else:
-        results.append(("Grounding", "FAIL", "JSON sozlesmesine uymadi (kucuk modellerde beklenir)"))
+        results.append(("Grounding", "FAIL", f"JSON sozlesmesine uymadi (kucuk modellerde beklenir){g_note}"))
+except urllib.error.HTTPError as e:
+    body = ""
+    try:
+        body = e.read()[:100].decode(errors="replace")
+    except Exception:
+        pass
+    results.append(("Grounding", "FAIL", f"HTTP {e.code}: {body}{g_note}"))
 except Exception as e:
-    results.append(("Grounding", "FAIL", str(e)[:90]))
+    results.append(("Grounding", "FAIL", f"{str(e)[:90]}{g_note}"))
 
 finish()
 PY
