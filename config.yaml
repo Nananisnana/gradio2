@@ -64,6 +64,14 @@ models:                      # anahtar sirasi dropdown sirasidir
     hf_id: "lmms-lab/llava-onevision-qwen2-0.5b-ov"
     container: "sglang-llava-05b"
     serve_extra: "--chat-template chatml-llava"   # yoksa gorseller SESSIZCE yok sayilir!
+    # 0.5B model genel JSON sozlesmesini kaldiramiyor (sahada goruldu: kutu
+    # dongusune girip max_tokens'ta kesiliyor) -> sade, kutusuz, halusinasyon
+    # frenli kisa prompt. Kutu uretimi bu modelde zaten beklenmiyordu.
+    system_prompt: |
+      Answer the user's question about the image briefly and directly, in the
+      same language as the question. If the question is yes/no, start with yes
+      or no. Only mention objects you can clearly see. If you are not sure or
+      the object is not present, say no. Never guess.
     # LLaVA config'i vision tower'i AYRI bir repo olarak isaret eder; model
     # snapshot'i bunu icermez. On-indirilmezse ilk acilis container icinde
     # ~1.5GB indirmeye kalkar (yavas agda wait_healthy zaman asimini patlatabilir,

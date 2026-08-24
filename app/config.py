@@ -39,6 +39,9 @@ class ModelConfig:
     # modelin isaret ettigi harici HF repolari (orn. LLaVA'nin SigLIP tower'i);
     # setup.sh on-indirme adiminda bunlari da ceker (dependency registry)
     extra_downloads: tuple[str, ...] = ()
+    # bos birakilirsa genel grounding sozlesmesi (SYSTEM_PROMPT) kullanilir;
+    # kucuk modeller icin daha kisa/sade prompt buradan verilebilir
+    system_prompt: str = ""
 
 
 @dataclass(frozen=True)
@@ -135,6 +138,7 @@ def load_config(path: str | None = None) -> AppConfig:
             container=str(m["container"]),
             serve_extra=str(m.get("serve_extra", "")),
             extra_downloads=tuple(extra_dl),
+            system_prompt=str(m.get("system_prompt", "") or "").strip(),
         )
 
     containers = [m.container for m in models.values()]

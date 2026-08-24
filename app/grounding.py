@@ -51,6 +51,9 @@ def _normalize_coord(v: float, max_seen: float) -> float:
     return min(max(v, 0.0), 1000.0) / 1000.0
 
 
+_MAX_BOXES = 10
+
+
 def _parse_boxes(raw_boxes) -> list[Box]:
     boxes: list[Box] = []
     if not isinstance(raw_boxes, list):
@@ -70,8 +73,19 @@ def _parse_boxes(raw_boxes) -> list[Box]:
         if x2 <= x1 or y2 <= y1:
             continue
         label = str(b.get("label") or "nesne")
-        boxes.append(Box(label=label, x1=x1, y1=y1, x2=x2, y2=y2))
+        box = Box(label=label, x1=x1, y1=y1, x2=x2, y2=y2)
+        # kucuk modeller ayni kutuyu dongude tekrarlayabiliyor (sahada goruldu):
+        # birebir tekrarlari ele, toplami sinirla
+        if box not in boxes:
+            boxes.append(box)
+        if len(boxes) >= _MAX_BOXES:
+            break
     return boxes
+
+
+# JSON yarim kesildiginde (max_tokens'a carpan dongulu cikti - sahada goruldu)
+# en azindan answer alanini kurtarmak icin: "answer": "..." desenini yakalar
+_ANSWER_RE = re.compile(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)"')
 
 
 def parse_grounding_result(raw: str) -> VqaResult:
@@ -92,6 +106,13 @@ def parse_grounding_result(raw: str) -> VqaResult:
                 candidate = None
 
     if not isinstance(candidate, dict):
+        # JSON ayristirilmadi: ham JSON dokuntusunu kullaniciya gostermek yerine
+        # answer alanini regex ile kurtarmayi dene (kesik/bozuk ciktilar icin)
+        m = _ANSWER_RE.search(text)
+        if m:
+            salvaged = m.group(1).encode().decode("unicode_escape", errors="ignore").strip()
+            if salvaged:
+                return VqaResult(answer=salvaged, boxes=[], raw_response=raw)
         return VqaResult(answer=raw, boxes=[], raw_response=raw)
 
     answer = candidate.get("answer")

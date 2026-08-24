@@ -48,7 +48,10 @@ class OpenAIVqaClient:
         )
 
     def _messages(self, prompt: str, image_data_uri: str, merge_system: bool):
-        text = (SYSTEM_PROMPT + "\n\n" + prompt) if merge_system else prompt
+        # model basina ozel prompt tanimliysa (config.yaml system_prompt) onu,
+        # yoksa genel grounding sozlesmesini kullan
+        sp = self._model.system_prompt or SYSTEM_PROMPT
+        text = (sp + "\n\n" + prompt) if merge_system else prompt
         user = {
             "role": "user",
             "content": [
@@ -58,7 +61,7 @@ class OpenAIVqaClient:
         }
         if merge_system:
             return [user]
-        return [{"role": "system", "content": SYSTEM_PROMPT}, user]
+        return [{"role": "system", "content": sp}, user]
 
     def _request(self, messages) -> str:
         try:

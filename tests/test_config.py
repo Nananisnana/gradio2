@@ -49,6 +49,7 @@ def test_valid_config(tmp_path):
     assert [m.key for m in cfg.models_on_engine("vllm")] == ["smol", "intern"]
     assert cfg.models["llava"].extra_downloads == ("google/siglip-so400m-patch14-384",)
     assert cfg.models["smol"].extra_downloads == ()
+    assert cfg.models["smol"].system_prompt == ""   # varsayilan: genel sozlesme kullanilir
 
 
 def test_invalid_extra_downloads(tmp_path):

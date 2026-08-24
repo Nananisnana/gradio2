@@ -81,6 +81,23 @@ def test_empty_input():
     assert res.answer == "" and res.boxes == []
 
 
+def test_truncated_json_salvages_answer():
+    # max_tokens'a carpan dongulu cikti (sahada goruldu): JSON yarim, answer kurtarilmali
+    raw = '{"answer": "Yes, there is a bridge.", "boxes": [{"label": "The bridge", "bbox": [0.0, 0.0, 1.0, 0.9]}, {"label": "The bridge", "bbox": [0.0, 0.0'
+    res = parse_grounding_result(raw)
+    assert res.answer == "Yes, there is a bridge."   # ham JSON dokuntusu DEGIL
+    assert res.boxes == []
+
+
+def test_duplicate_boxes_deduped_and_capped():
+    dup = ', '.join('{"label": "b", "bbox": [0, 0, 1000, 900]}' for _ in range(30))
+    uniq = ', '.join(f'{{"label": "u{i}", "bbox": [{i*10}, 0, {i*10+50}, 100]}}' for i in range(30))
+    res1 = parse_grounding_result(f'{{"answer": "x", "boxes": [{dup}]}}')
+    assert len(res1.boxes) == 1                      # birebir tekrarlar elendi
+    res2 = parse_grounding_result(f'{{"answer": "x", "boxes": [{uniq}]}}')
+    assert len(res2.boxes) == 10                     # ust sinir
+
+
 # --- annotate_frame ---
 
 def _frame():
