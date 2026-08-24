@@ -35,7 +35,11 @@ VLLM_FB_IMG="${VLLM_FB_IMG:-ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin}"
 # olabilir; 0.7 tavani (5.2G) bunun altinda kalip mesru sekilde "No available
 # memory" uretir. 0.85 tavani (6.3G) + --swap-space 0 ile kucuk modele bol pay kalir.
 VLLM_FRAC="${VLLM_FRAC:-0.9}"
-SGL_FRAC="${SGL_FRAC:-0.5}"
+# SGLang notu (sahada dogrulandi): mem-fraction-static, BOS bellegin orani olarak
+# statik havuz (agirliklar+KV) ayirir. LLaVA agirliklari 1.8GB oldugundan dusuk
+# fraksiyonda havuz agirliklara bile yetmez ("Not enough memory ... increase").
+# Bu hatada fraksiyon YUKSELTILIR; dusurme yalniz cihaz-seviyesi OOM'da gecerli.
+SGL_FRAC="${SGL_FRAC:-0.8}"
 # KV cache ihtiyacini kisan ikinci dugme (dar bellekte 1024 deneyin):
 VLLM_MAX_LEN="${VLLM_MAX_LEN:-2048}"
 DATA="$HOME/jetson-containers/data"
