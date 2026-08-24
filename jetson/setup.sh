@@ -93,6 +93,21 @@ RUN if [ -x /opt/venv/bin/python3 ]; then PY=/opt/venv/bin/python3; else PY=pyth
 EOF
 fi
 
+# dustynv/sglang 0.4.7 imajinda sgl_kernel (SGLang'in derlenmis CUDA cekirdegi)
+# EKSIK (sahada dogrulandi: acilista ModuleNotFoundError). Jetson icin derlenmis
+# wheel, jetson-ai-lab'in YASAYAN indeksinde (.io; imajin isaret ettigi .dev olu)
+# mevcut -> vllm'deki gibi ince katmanla kurulur ve import build icinde dogrulanir.
+SGL_RUN_IMG="sglang-fixed:local-v1"
+if ! docker image inspect "$SGL_RUN_IMG" >/dev/null 2>&1; then
+  echo "== 2c: sglang ince katmani (sgl-kernel, jetson-ai-lab.io/jp6/cu128) =="
+  docker build --network=host -t "$SGL_RUN_IMG" - <<EOF
+FROM $SGL_IMG
+RUN if [ -x /opt/venv/bin/python3 ]; then PY=/opt/venv/bin/python3; else PY=python3; fi \\
+    && \$PY -m pip install --no-cache-dir --index-url https://pypi.jetson-ai-lab.io/jp6/cu128 sgl-kernel \\
+    && \$PY -c "import sgl_kernel; print('sgl_kernel dogrulandi')"
+EOF
+fi
+
 echo "== 3/4 model on-indirme (config.yaml'daki tum modeller + bagimliliklari) =="
 # extra_downloads: modelin isaret ettigi harici repolar da indirilir
 # (orn. LLaVA'nin SigLIP tower'i - indirilmezse ilk acilis container icinde
@@ -174,7 +189,7 @@ while IFS=$'\t' read -r key engine hf_id container serve_extra extra_dl; do
       docker create --name "$container" \
         --runtime nvidia --network host --ipc host --restart no --oom-score-adj 500 \
         -v "$DATA:/data" -e HF_HOME=/data/models/huggingface \
-        "$SGL_IMG" \
+        "$SGL_RUN_IMG" \
         python3 -m sglang.launch_server \
           --model-path "$hf_id" \
           --host 0.0.0.0 --port "$PORT" --dtype half \
