@@ -44,7 +44,7 @@ SGL_FRAC="${SGL_FRAC:-0.8}"
 # sinira takilip 400 dondurur (sahada dogrulandi). KV havuzu zaten ~51k token.
 SGL_CTX="${SGL_CTX:-4096}"
 # KV cache ihtiyacini kisan ikinci dugme (dar bellekte 1024 deneyin):
-VLLM_MAX_LEN="${VLLM_MAX_LEN:-2048}"
+VLLM_MAX_LEN="${VLLM_MAX_LEN:-4096}"
 DATA="$HOME/jetson-containers/data"
 
 RE_ALL=0; RE_MODEL=""; FB=0

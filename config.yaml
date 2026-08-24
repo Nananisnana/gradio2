@@ -24,7 +24,12 @@ health_poll_interval_s: 3    # aktivasyon sirasinda /v1/models yoklama araligi (
 status_refresh_s: 5          # UI rozetlerinin yenilenme araligi (sn)
 
 frame:
-  max_dim: 512               # cikarilan karenin uzun kenari (px)
+  # 768 (sahada kalibre): 512'de genis video karesindeki kucuk nesneler (arac vb.)
+  # modele 30-40 piksellik leke olarak ulasip kacirilyordu. Daha buyuk deger
+  # goruntu token sayisini artirir - motor baglam sinirlarina dikkat:
+  # vLLM max-len 4096 ve SGLang ctx 4096 bu degere gore ayarli; 1024'e cikarma
+  # (LLaVA anyres ~5000 token uretir, 400 doner).
+  max_dim: 768
   jpeg_quality: 85
 
 request:
