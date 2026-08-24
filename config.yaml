@@ -62,6 +62,14 @@ models:                      # anahtar sirasi dropdown sirasidir
     hf_id: "OpenGVLab/InternVL2_5-1B"
     container: "vllm-internvl25-1b"
     serve_extra: "--trust-remote-code"     # InternVL ozel model kodu kullanir
+    # Kullanici karari (2026-08-24): kutu istenmiyor - uc model de kisa duz cevap.
+    # Kutu sozlesmesini geri acmak icin bu system_prompt blogunu silmen yeterli
+    # (genel SYSTEM_PROMPT devreye girer).
+    system_prompt: |
+      Answer in ONE short sentence, in the same language as the question.
+      If the question is yes/no, start with Yes or No. Only mention objects
+      you can clearly see; if unsure or absent, say no. Never guess.
+      Do not describe the image unless asked.
   # NOT: Qwen2-VL-2B-AWQ denendi ve KALDIRILDI (2026-08-24): AWQ kuantizasyon
   # cekirdekleri bu cihazin GPU'sunda calismadi. Geri eklemek istersen eski
   # girisi git gecmisinden al; once AWQ'suz/farkli kuantizasyonlu varyant dene.
