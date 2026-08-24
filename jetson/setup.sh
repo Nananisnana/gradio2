@@ -40,6 +40,9 @@ VLLM_FRAC="${VLLM_FRAC:-0.9}"
 # fraksiyonda havuz agirliklara bile yetmez ("Not enough memory ... increase").
 # Bu hatada fraksiyon YUKSELTILIR; dusurme yalniz cihaz-seviyesi OOM'da gecerli.
 SGL_FRAC="${SGL_FRAC:-0.8}"
+# LLaVA-OneVision anyres: 512px kare ~2000-2500 goruntu token uretir; 2048 baglam
+# sinira takilip 400 dondurur (sahada dogrulandi). KV havuzu zaten ~51k token.
+SGL_CTX="${SGL_CTX:-4096}"
 # KV cache ihtiyacini kisan ikinci dugme (dar bellekte 1024 deneyin):
 VLLM_MAX_LEN="${VLLM_MAX_LEN:-2048}"
 DATA="$HOME/jetson-containers/data"
@@ -216,7 +219,7 @@ while IFS=$'\t' read -r key engine hf_id container serve_extra extra_dl; do
         python3 -m sglang.launch_server \
           --model-path "$hf_id" \
           --host 0.0.0.0 --port "$PORT" --dtype half \
-          --mem-fraction-static "$SGL_FRAC" --context-length 2048 \
+          --mem-fraction-static "$SGL_FRAC" --context-length "$SGL_CTX" \
           --disable-cuda-graph \
           $serve_extra
       ok "$container olusturuldu ($hf_id, port=$PORT, frac=$SGL_FRAC)"
