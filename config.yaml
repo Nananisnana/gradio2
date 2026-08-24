@@ -1,0 +1,70 @@
+# Tek dogruluk kaynagi: app/ ve jetson/ script'leri bu dosyayi okur.
+#
+# MIMARI: Model Registry ve Engine Registry AYRIDIR.
+#   - Kullanici UI'da MODEL secer (motor degil).
+#   - Her model bir motora (engine) baglidir; motor basina ayni anda TEK model
+#     servis edilebilir (vLLM/SGLang kisiti) -> her model kendi container'ina sahiptir,
+#     ayni motorun modelleri ayni portu paylasir, secimde eski durdurulup yenisi baslar.
+#
+# mode: switch -> GUVENLI VARSAYILAN: toplamda TEK container ayakta; her model
+#                 degisimi digerlerini durdurur. Paylasimli cihazda (uzerinde baska yazilimlar da
+#                 calisir, ~4-5GB bos RAM) OOM riski en dusuk mod budur.
+#       dual   -> DENEYSEL: motor basina bir slot (vLLM'de aktif model + SGLang'de
+#                 aktif model) ayni anda ayakta. Denemeden once container'lari
+#                 dusuk fraksiyonla yeniden olustur (README bolum 5) ve iptal
+#                 kriterini uygula; OOM belirtisi olursa kalici switch'e don.
+#       mock   -> sahte cevaplar (Windows'ta backend'siz UI testi icin)
+#
+# Gelistirme override'i: VQA_MODE ortam degiskeni mode'u ezer (ornek: VQA_MODE=mock)
+mode: switch
+default_model: smolvlm2-256m
+
+switch_timeout_s: 300        # model aktivasyonunda saglik bekleme ust siniri (sn)
+health_poll_interval_s: 3    # aktivasyon sirasinda /v1/models yoklama araligi (sn)
+status_refresh_s: 5          # UI rozetlerinin yenilenme araligi (sn)
+
+frame:
+  max_dim: 512               # cikarilan karenin uzun kenari (px)
+  jpeg_quality: 85
+
+request:
+  read_timeout_s: 120        # ilk istek (isinma) yavas olabilir
+  max_tokens: 256
+  temperature: 0.2
+
+engines:
+  vllm:
+    base_url: "http://localhost:8000/v1"
+  sglang:
+    base_url: "http://localhost:30000/v1"
+
+models:                      # anahtar sirasi dropdown sirasidir
+  smolvlm2-256m:
+    display_name: "SmolVLM2-256M (vLLM)"
+    engine: vllm
+    hf_id: "HuggingFaceTB/SmolVLM2-256M-Video-Instruct"
+    container: "vllm-smolvlm2-256m"
+  internvl25-1b:
+    display_name: "InternVL2.5-1B (vLLM)"
+    engine: vllm
+    hf_id: "OpenGVLab/InternVL2_5-1B"
+    container: "vllm-internvl25-1b"
+    serve_extra: "--trust-remote-code"     # InternVL ozel model kodu kullanir
+  qwen2-vl-2b-awq:
+    display_name: "Qwen2-VL-2B AWQ (vLLM)"
+    engine: vllm
+    hf_id: "Qwen/Qwen2-VL-2B-Instruct-AWQ"
+    container: "vllm-qwen2-vl-2b-awq"
+    # NOT: AWQ kernel'i Jetson'da dogrulanmadi; sorun cikarirsa bu girisi sil
+  llava-05b:
+    display_name: "LLaVA-OneVision-0.5B (SGLang)"
+    engine: sglang
+    hf_id: "lmms-lab/llava-onevision-qwen2-0.5b-ov"
+    container: "sglang-llava-05b"
+    serve_extra: "--chat-template chatml-llava"   # yoksa gorseller SESSIZCE yok sayilir!
+    # LLaVA config'i vision tower'i AYRI bir repo olarak isaret eder; model
+    # snapshot'i bunu icermez. On-indirilmezse ilk acilis container icinde
+    # ~1.5GB indirmeye kalkar (yavas agda wait_healthy zaman asimini patlatabilir,
+    # offline'da LocalEntryNotFoundError). setup.sh bu listeyi de indirir.
+    extra_downloads:
+      - "google/siglip-so400m-patch14-384"

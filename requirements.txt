@@ -1,0 +1,7 @@
+gradio==5.31.0
+requests==2.32.3   # gradio 5.31 CLI import zinciri istiyor ama bagimliligi deklare etmiyor
+openai==1.76.0
+httpx==0.28.1
+opencv-python-headless==4.10.0.84
+numpy==1.26.4
+PyYAML==6.0.2
