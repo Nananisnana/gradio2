@@ -106,9 +106,11 @@ fi
 # Cozum: jetson-ai-lab.io'nun BIRLIKTE yayinladigi bilinen-iyi cifti kurmak:
 # sglang==0.4.6.post3 + sgl-kernel==0.1.2.post1 (imajdaki 0.4.7'nin uzerine
 # --no-deps ile; bagimlilik yigini imajda zaten tam).
-SGL_RUN_IMG="sglang-fixed:local-v2"
+# v3 (sahada dogrulandi): scheduler acilista xgrammar ister (grammar backend);
+# ne imajda ne cifte dahil. CPU-tarafi kutuphane, PyPI'daki aarch64 wheel yeterli.
+SGL_RUN_IMG="sglang-fixed:local-v3"
 if ! docker image inspect "$SGL_RUN_IMG" >/dev/null 2>&1; then
-  echo "== 2c: sglang ince katmani (bilinen-iyi cift, jetson-ai-lab.io/jp6/cu128) =="
+  echo "== 2c: sglang ince katmani (bilinen-iyi cift + xgrammar) =="
   # Build icinde IMPORT EDILMEZ: Jetson'da CUDA surucu kutuphaneleri container'a
   # yalniz --runtime nvidia ile CALISIRKEN baglanir; build sirasinda imajdaki
   # kopyalar bos stub'dir ve import "libnvrm_gpu.so: file too short" ile coker
@@ -120,7 +122,9 @@ RUN if [ -x /opt/venv/bin/python3 ]; then PY=/opt/venv/bin/python3; else PY=pyth
     && \$PY -m pip install --no-cache-dir --no-deps \\
          --index-url https://pypi.jetson-ai-lab.io/jp6/cu128 \\
          "sglang==0.4.6.post3" "sgl-kernel==0.1.2.post1" \\
-    && \$PY -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('sgl_kernel') else 1)"
+    && \$PY -m pip install --no-cache-dir --no-deps \\
+         --index-url https://pypi.org/simple "xgrammar==0.1.17" \\
+    && \$PY -c "import importlib.util,sys; sok=importlib.util.find_spec('sgl_kernel'); xok=importlib.util.find_spec('xgrammar'); sys.exit(0 if (sok and xok) else 1)"
 EOF
   echo "-- sgl_kernel GPU calisma zamani import dogrulamasi --"
   docker run --rm --runtime nvidia --entrypoint bash "$SGL_RUN_IMG" -c \
