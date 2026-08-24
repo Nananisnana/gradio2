@@ -42,6 +42,9 @@ class ModelConfig:
     # bos birakilirsa genel grounding sozlesmesi (SYSTEM_PROMPT) kullanilir;
     # kucuk modeller icin daha kisa/sade prompt buradan verilebilir
     system_prompt: str = ""
+    # 0 = request.max_tokens (genel) kullanilir; prompt dinlemeyen gevez
+    # modellere model-basina sert cevap siniri buradan verilir
+    max_tokens: int = 0
 
 
 @dataclass(frozen=True)
@@ -139,6 +142,7 @@ def load_config(path: str | None = None) -> AppConfig:
             serve_extra=str(m.get("serve_extra", "")),
             extra_downloads=tuple(extra_dl),
             system_prompt=str(m.get("system_prompt", "") or "").strip(),
+            max_tokens=int(m.get("max_tokens", 0) or 0),
         )
 
     containers = [m.container for m in models.values()]

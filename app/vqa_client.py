@@ -68,7 +68,7 @@ class OpenAIVqaClient:
             resp = self._client.chat.completions.create(
                 model=self._model.hf_id,
                 messages=messages,
-                max_tokens=self._req.max_tokens,
+                max_tokens=self._model.max_tokens or self._req.max_tokens,
                 temperature=self._req.temperature,
             )
         except openai.APITimeoutError as e:

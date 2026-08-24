@@ -87,6 +87,9 @@ models:                      # anahtar sirasi dropdown sirasidir
       same language as the question. If the question is yes/no, start with yes
       or no. Only mention objects you can clearly see. If you are not sure or
       the object is not present, say no. Never guess.
+    # LLaVA prompt'taki kisalik kurallarini dinlemiyor (sahada goruldu) ->
+    # model-basina sert makas: cevap en fazla 48 token (~30 kelime)
+    max_tokens: 48
     # LLaVA config'i vision tower'i AYRI bir repo olarak isaret eder; model
     # snapshot'i bunu icermez. On-indirilmezse ilk acilis container icinde
     # ~1.5GB indirmeye kalkar (yavas agda wait_healthy zaman asimini patlatabilir,
