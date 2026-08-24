@@ -97,9 +97,14 @@ fi
 # EKSIK (sahada dogrulandi: acilista ModuleNotFoundError). Jetson icin derlenmis
 # wheel, jetson-ai-lab'in YASAYAN indeksinde (.io; imajin isaret ettigi .dev olu)
 # mevcut -> vllm'deki gibi ince katmanla kurulur ve import build icinde dogrulanir.
-SGL_RUN_IMG="sglang-fixed:local-v1"
+# v2 (sahada dogrulandi): yalniz sgl-kernel eklemek yetmiyor - imajdaki sglang
+# 0.4.7, indeksin 0.1.2 cekirdegiyle surum uyusmazligi veriyor (deep-gemm).
+# Cozum: jetson-ai-lab.io'nun BIRLIKTE yayinladigi bilinen-iyi cifti kurmak:
+# sglang==0.4.6.post3 + sgl-kernel==0.1.2.post1 (imajdaki 0.4.7'nin uzerine
+# --no-deps ile; bagimlilik yigini imajda zaten tam).
+SGL_RUN_IMG="sglang-fixed:local-v2"
 if ! docker image inspect "$SGL_RUN_IMG" >/dev/null 2>&1; then
-  echo "== 2c: sglang ince katmani (sgl-kernel, jetson-ai-lab.io/jp6/cu128) =="
+  echo "== 2c: sglang ince katmani (bilinen-iyi cift, jetson-ai-lab.io/jp6/cu128) =="
   # Build icinde IMPORT EDILMEZ: Jetson'da CUDA surucu kutuphaneleri container'a
   # yalniz --runtime nvidia ile CALISIRKEN baglanir; build sirasinda imajdaki
   # kopyalar bos stub'dir ve import "libnvrm_gpu.so: file too short" ile coker
@@ -108,7 +113,9 @@ if ! docker image inspect "$SGL_RUN_IMG" >/dev/null 2>&1; then
   docker build --network=host -t "$SGL_RUN_IMG" - <<EOF
 FROM $SGL_IMG
 RUN if [ -x /opt/venv/bin/python3 ]; then PY=/opt/venv/bin/python3; else PY=python3; fi \\
-    && \$PY -m pip install --no-cache-dir --index-url https://pypi.jetson-ai-lab.io/jp6/cu128 sgl-kernel \\
+    && \$PY -m pip install --no-cache-dir --no-deps \\
+         --index-url https://pypi.jetson-ai-lab.io/jp6/cu128 \\
+         "sglang==0.4.6.post3" "sgl-kernel==0.1.2.post1" \\
     && \$PY -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('sgl_kernel') else 1)"
 EOF
   echo "-- sgl_kernel GPU calisma zamani import dogrulamasi --"
