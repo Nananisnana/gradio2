@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # Tek seferlik kurulum (idempotent, tekrar calistirmasi guvenli):
 #   1) jetson-containers klonla + install.sh
 #   2) imajlari cek (ilk cekim 30-60 dk - bu beklerken 2. terminalde venv kur)
@@ -100,12 +100,20 @@ fi
 SGL_RUN_IMG="sglang-fixed:local-v1"
 if ! docker image inspect "$SGL_RUN_IMG" >/dev/null 2>&1; then
   echo "== 2c: sglang ince katmani (sgl-kernel, jetson-ai-lab.io/jp6/cu128) =="
+  # Build icinde IMPORT EDILMEZ: Jetson'da CUDA surucu kutuphaneleri container'a
+  # yalniz --runtime nvidia ile CALISIRKEN baglanir; build sirasinda imajdaki
+  # kopyalar bos stub'dir ve import "libnvrm_gpu.so: file too short" ile coker
+  # (sahada dogrulandi). Build'de yalniz paketin dogru ortama kuruldugu kontrol
+  # edilir; gercek import asagida --runtime nvidia'li tek seferlik docker run'da.
   docker build --network=host -t "$SGL_RUN_IMG" - <<EOF
 FROM $SGL_IMG
 RUN if [ -x /opt/venv/bin/python3 ]; then PY=/opt/venv/bin/python3; else PY=python3; fi \\
     && \$PY -m pip install --no-cache-dir --index-url https://pypi.jetson-ai-lab.io/jp6/cu128 sgl-kernel \\
-    && \$PY -c "import sgl_kernel; print('sgl_kernel dogrulandi')"
+    && \$PY -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('sgl_kernel') else 1)"
 EOF
+  echo "-- sgl_kernel GPU calisma zamani import dogrulamasi --"
+  docker run --rm --runtime nvidia --entrypoint bash "$SGL_RUN_IMG" -c \
+    'PY=/opt/venv/bin/python3; [ -x "$PY" ] || PY=python3; "$PY" -c "import sgl_kernel; print(\"sgl_kernel dogrulandi (runtime)\")"'
 fi
 
 echo "== 3/4 model on-indirme (config.yaml'daki tum modeller + bagimliliklari) =="
